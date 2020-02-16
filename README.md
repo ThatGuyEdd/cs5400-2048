@@ -1,1 +1,2 @@
-# CS5400 -- Introduction to AI Assignment 1
+# CS5400 Assignment 1
+2048 Puzzle Assignment for SP2020
