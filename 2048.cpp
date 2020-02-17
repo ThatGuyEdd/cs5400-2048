@@ -5,18 +5,29 @@ auto start = high_resolution_clock::now();
 int main()
 {
     int goal; //Goal state
-    int tile; //Variable for spawning tiles
+    int tile; //Variable for tiles
+    string spawnTiles; //String for series of spawn tiles
     vector<vector<int>> board; //Game board
     vector<int> genTiles; //Vector of spawning tiles
 
     //Receiving input from files and filling in related vectors
     cin >> goal;
     cin >> columns >> rows;
-    for(int i = 0; i < 3; i++)
+    cin.ignore();
+    getline(cin, spawnTiles);
+
+    stringstream ss;
+    ss << spawnTiles;
+    int spawnTileVal;
+    char tempStr[1];
+
+    while(!ss.eof())
     {
-        cin >> tile;
-        genTiles.push_back(tile);
+        ss >> tempStr;
+        spawnTileVal = atoi(tempStr);
+        genTiles.push_back(spawnTileVal);
     }
+
     for(int r = 0; r < rows; r++)
     {
         vector<int> tempVec;
@@ -27,19 +38,6 @@ int main()
         }
         board.push_back(tempVec);
     }
-
-/*==================DEBUGGING INPUT==================//
-    cout << goal << endl;
-    cout << columns << " " << rows << endl;
-    for(int v = 0; v < genTiles.size(); v++)
-    {
-        cout << genTiles[v] << " ";
-    }
-    cout << endl;
-    cout << "=====INITIAL STATE=====" << endl;
-    printBoard(board);
-//===================================================*/
-    
     //Temporary placeholder board state for solving the game
     vector<vector<int>> tempState;
     tempState = solve(board, genTiles, goal);
@@ -52,32 +50,7 @@ int main()
     //Prints final solution moveset
     cout << moves.length() << endl;
     cout << moves << endl;
-
     printBoard(tempState);
-    
-/*=================DEBUGGING OUTPUT==================//
-    vector<vector<int>> testB;
 
-    testB = upTest(board, genTiles);
-
-    cout << "=======UP STATE========" << endl;
-    printBoard(testB);
-
-    testB = downTest(board, genTiles);
-
-    cout << "======DOWN STATE=======" << endl;
-    printBoard(testB);
-
-    testB = leftTest(board, genTiles);
-
-    cout << "======LEFT STATE=======" << endl;
-    printBoard(testB);
-
-    testB = rightTest(board, genTiles);
-
-    cout << "======RIGHT STATE======" << endl;
-    printBoard(testB);
-//===================================================*/
-    
     return 0;
 }
