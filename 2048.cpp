@@ -38,10 +38,13 @@ int main()
         }
         board.push_back(tempVec);
     }
+
+    
     //Temporary placeholder board state for solving the game
     vector<vector<int>> tempState;
-    tempState = solve(board, genTiles, goal);
-
+    //tempState = solveBFS(board, genTiles, goal);
+    tempState = solveDFS(board, genTiles, goal);
+    
     //Keeping track of runtime
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
@@ -51,6 +54,7 @@ int main()
     cout << moves.length() << endl;
     cout << moves << endl;
     printBoard(tempState);
+    
 
     return 0;
 }
