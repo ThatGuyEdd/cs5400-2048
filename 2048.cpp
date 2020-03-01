@@ -1,3 +1,11 @@
+/*
+Edward Tsang
+Missouri University of Science and Technology
+2048 Puzzle Assignment
+CS5400: Introduction to Artificial Intelligence
+Dr. Morales
+*/
+
 #include "2048.h"
 
 auto start = high_resolution_clock::now();
@@ -39,22 +47,25 @@ int main()
         board.push_back(tempVec);
     }
 
-    
     //Temporary placeholder board state for solving the game
     vector<vector<int>> tempState;
     //tempState = solveBFS(board, genTiles, goal);
-    tempState = solveDFS(board, genTiles, goal);
-    
+    //tempState = solveID_DFS(board, genTiles, goal);
+    tempState = solveGrBeFGS(board, genTiles, goal);
+
     //Keeping track of runtime
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
     cout << duration.count() << endl;
 
     //Prints final solution moveset
-    cout << moves.length() << endl;
-    cout << moves << endl;
-    printBoard(tempState);
-    
+    if(!noSolution)
+    {
+        moves.erase(moves.begin());
+        cout << moves.length() << endl;
+        cout << moves << endl;
+        printBoard(tempState);
+    }
 
     return 0;
 }
