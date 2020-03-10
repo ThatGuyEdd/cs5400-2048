@@ -9,6 +9,7 @@
 #include <cmath>
 #include <chrono>
 #include <stdlib.h>
+#include <time.h>
 
 using namespace std;
 using namespace std::chrono;
@@ -17,18 +18,14 @@ using namespace std::chrono;
 int columns, rows; //Board dimensions
 int rotation = 0; //Used to set rotation of spawning tiles
 string moves; //Placeholder for moves
+bool noSolution = false; //Check if no solution
 
-bool noSolution = false; //Check is no solution (DFS)
-bool goalFound = false; //Check if goal state found (DFS)
-vector<vector<int>> goalState; //Returning goal state (DFS)
-int limit = 1; //Depth limit for DFS
-
-//Specifies heap sorting using maximum tile value
-struct compareMax
+//Specifies heap sorting using average value of all tiles
+struct Compare
 {
-    bool operator()(const tuple<vector<vector<int>>, string, int> &s1, const tuple<vector<vector<int>>, string, int> &s2)
+    bool operator()(const tuple<vector<vector<int>>, string, float> &s1, const tuple<vector<vector<int>>, string, float> &s2)
     {
-        return get<2>(s1) < get<2>(s2);
+        return get<2>(s1) > get<2>(s2);
     }
 };
 
@@ -38,7 +35,7 @@ void printBoard(vector<vector<int>> b)
     for(int r = 0; r < rows; r++)
     {
         for(int c = 0; c < columns; c++)
-            cout << b[r][c] << " ";
+            cout << b[r][c] << "\t";
         cout << endl;
     }
 }
@@ -300,268 +297,82 @@ vector<vector<int>> moveState(vector<vector<int>> b, vector<int> t, int d)
     return tempState;
 }
 
-//////////////////////////////////////////////////////////////////////////////////
-//==============================SOLVING ALGORITHMS==============================//
-//////////////////////////////////////////////////////////////////////////////////
-
-//Solves board state using BFS
-vector<vector<int>> solveBFS(vector<vector<int>> b, vector<int> t, int g)
-{   
-    //Frontiers for board states and movesets
-    vector<vector<vector<int>>> boardFrontier;
-    vector<string> movesFrontier{" "};
-
-    //Temporary placeholder board states for checking
-    vector<vector<int>> tempState;
-    vector<vector<int>> checkState;
-
-    //Temporary placeholder moves for checking
-    string tempMoves;
-
-    //Initial board state
-    boardFrontier.push_back(b);
-
-    //While the frontier has unchecked states, attempt to solve
-    while(!(boardFrontier.empty()))
-    {
-        tempState = boardFrontier.front(); 
-        tempMoves = movesFrontier.front();
-
-        //Removes first element from the frontier
-        boardFrontier.erase(boardFrontier.begin());
-        movesFrontier.erase(movesFrontier.begin());
-
-        for(int dir = 0; dir < 4; dir++)
-        {
-            //Checks all directional moves and generates board states
-            checkState = moveState(tempState, t, dir);
-
-            //Checks for illegal moves
-            if(tempState != checkState)
-            {
-                if(dir == 0)
-                {
-                    string tempMove = tempMoves;
-                    tempMove = tempMove.append("U");
-                    movesFrontier.push_back(tempMove);
-                }
-                else if(dir == 1)
-                {
-                    string tempMove = tempMoves;
-                    tempMove = tempMove.append("D");
-                    movesFrontier.push_back(tempMove);
-                }
-                else if(dir == 2)
-                {
-                    string tempMove = tempMoves;
-                    tempMove = tempMove.append("L");
-                    movesFrontier.push_back(tempMove);
-                }
-                else if(dir == 3)
-                {
-                    string tempMove = tempMoves;
-                    tempMove = tempMove.append("R");
-                    movesFrontier.push_back(tempMove);
-                }
-                //Checks rotation based on depth (move length)
-                rotation = (movesFrontier.back().length() + 1) % t.size();
-                checkState = spawnTile(checkState, t);
-                boardFrontier.push_back(checkState);
-            }
-
-            /*
-            else if(tempState == checkState)
-                cout << "+++++ILLEGAL+++++" << endl;
-            cout << "=====MOVE " << movesFrontier.back() << "=====" << endl;
-            printBoard(checkState);
-            */
-
-            //Checks for goal state
-            if(isGoal(boardFrontier.back(), g))
-            {
-                moves = movesFrontier.back();
-                return boardFrontier.back();
-            }  
-        }
-    }
-
-    //In case of error for no solutions
-    cout << "+++++ERROR: NO SOLUTION+++++" << endl;
-    return tempState;
-}
-
-//Solves board state using DFS
-void solveDFS(vector<vector<vector<int>>> &bf, vector<string> &m, vector<int> t, int g)
+//Custom heuristic
+vector<tuple<vector<vector<int>>, string, float>> heuristic(vector<tuple<vector<vector<int>>, string, float>> gf)
 {
-    //Temporary placeholder board states for checking
-    vector<vector<int>> tempState;  
-    vector<vector<int>> checkState; 
-
-    //Temporary placeholder moves for checking
-    string tempMoves;
-
-    while(!(bf.empty()))
-    {
-        tempState = bf.back();
-        tempMoves = m.back();
-
-        //Removes first element from the frontier
-        bf.pop_back();
-        m.pop_back();
-
-        for(int dir = 0; dir < 4; dir++)
-        {
-            //Checks all directional moves and generates board states
-            checkState = moveState(tempState, t, dir);
-
-            //Checks for illegal moves and if reached depth limit
-            if(tempState != checkState && (tempMoves.length() < limit))
-            {
-                if(dir == 0)
-                {
-                    string tempMove = tempMoves;
-                    tempMove = tempMove.append("U");
-                    //cout << "=====MOVE " << tempMove << "=====" << endl;
-                    m.push_back(tempMove);
-                }
-                else if(dir == 1)
-                {
-                    string tempMove = tempMoves;
-                    tempMove = tempMove.append("D");
-                    //cout << "=====MOVE " << tempMove << "=====" << endl;                    
-                    m.push_back(tempMove);
-                }
-                else if(dir == 2)
-                {
-                    string tempMove = tempMoves;
-                    tempMove = tempMove.append("L");
-                    //cout << "=====MOVE " << tempMove << "=====" << endl;                    
-                    m.push_back(tempMove);
-                }
-                else if(dir == 3)
-                {
-                    string tempMove = tempMoves;
-                    tempMove = tempMove.append("R");
-                    //cout << "=====MOVE " << tempMove << "=====" << endl;                    
-                    m.push_back(tempMove);
-                }
-                //Checks rotation based on depth (move length)
-                rotation = (m.back().length() + 1) % t.size();
-                checkState = spawnTile(checkState, t);
-                //printBoard(checkState);
-                bf.push_back(checkState);
-            }
-
-            //Checks for goal state
-            if(!(bf.empty()) && (tempMoves.length() < limit))
-            {   
-                //cout << "=====CHECKING " << m.back() << "=====" << endl;
-                //printBoard(checkState);
-                if(isGoal(bf.back(), g))
-                {
-                    moves = m.back();
-                    goalState = bf.back();
-                    goalFound = true;
-                    return;
-                }  
-            }
-        }
-    }
-    //If space exhausted, no solution
-    if(limit > (pow(columns, rows) * 2))
-    {
-        cout << "+++++ERROR: NO SOLUTION+++++" << endl;
-        noSolution = true;
-        return;
-    }
-    //cout << "=====NO SOLUTION IN DEPTH LIMIT " << limit << "=====" << endl;
-    return;
-}
-
-//Solves board state using ID-DFS
-vector<vector<int>> solveID_DFS(vector<vector<int>> b, vector<int> t, int g)
-{   
-    while(!goalFound)
-    {
-        //cout << "+++++NOW ATTEMPTING DEPTH LIMIT " << limit << "+++++" << endl;
-        vector<vector<vector<int>>> initialFrontier;
-        vector<string> movesFrontier{" "};
-
-        initialFrontier.push_back(b);
-
-        solveDFS(initialFrontier, movesFrontier, t, g);
-        limit++;
-
-        if(noSolution)
-            return b;
-    }
-
-    return goalState;
-}
-
-//Custom heuristic for GrBeFGS
-vector<tuple<vector<vector<int>>, string, int>> heuristic(vector<tuple<vector<vector<int>>, string, int>> gf)
-{
-    vector<tuple<vector<vector<int>>, string, int>> tempGameFrontier = gf;
+    vector<tuple<vector<vector<int>>, string, float>> tempGameFrontier = gf;
 
     //Heapify the frontier vector 
-    make_heap(tempGameFrontier.begin(), tempGameFrontier.end(), compareMax());
+    make_heap(tempGameFrontier.begin(), tempGameFrontier.end(), Compare());
 
     return tempGameFrontier;
 }
 
 //Solves board using GrBeFGS
-vector<vector<int>> solveGrBeFGS(vector<vector<int>> b, vector<int> t, int g)
+vector<vector<int>> solve(vector<vector<int>> b, vector<int> t, int g)
 {
     //Variables for frontier, game states, and visited states
-    vector<tuple<vector<vector<int>>, string, int>> gameFrontier;
-    tuple<vector<vector<int>>, string, int> tempGameState;
-    tuple<vector<vector<int>>, string, int> checkGameState;
+    vector<tuple<vector<vector<int>>, string, float>> gameFrontier;
+    tuple<vector<vector<int>>, string, float> tempGameState;
+    tuple<vector<vector<int>>, string, float> checkGameState;
     unordered_map<string, vector<vector<int>>> visitedStates;
     bool visitedFound; //Used to determine if a game state has been seen
+
+    //To be used later for weight calculation
+    float weight;
+    float moveLength;
+    int nonZeroes;
+    string tempMove;
 
     //Initial game state
     visitedStates.insert(make_pair(" ", b));
     tempGameState = make_tuple(b, " ", 0);
     gameFrontier.push_back(tempGameState);
 
+    //Checks for initial goal state
+    if(isGoal(get<0>(gameFrontier.back()), g))
+    {   
+        moves = get<1>(gameFrontier.back());
+        return get<0>(gameFrontier.back());
+    }
+
     while(!(gameFrontier.empty()))
     {
         //Begins with front of frontier
         tempGameState = gameFrontier.front();
         gameFrontier.erase(gameFrontier.begin());
-        visitedFound = false;
 
         //Checks all directions
         for(int dir = 0; dir < 4; dir++)
         {
             get<0>(checkGameState) = moveState(get<0>(tempGameState), t, dir);
             get<1>(checkGameState) = get<1>(tempGameState);
+            visitedFound = false;
 
             //Illegal move checking
             if(get<0>(tempGameState) != get<0>(checkGameState))
             {
                 if(dir == 0)
                 {
-                    string tempMove = get<1>(tempGameState);
+                    tempMove = get<1>(tempGameState);
                     tempMove = get<1>(checkGameState).append("U");
                     get<1>(checkGameState) = tempMove;
                 }
                 else if(dir == 1)
                 {
-                    string tempMove = get<1>(tempGameState);
+                    tempMove = get<1>(tempGameState);
                     tempMove = get<1>(checkGameState).append("D");
                     get<1>(checkGameState) = tempMove;
                 }
                 else if(dir == 2)
                 {
-                    string tempMove = get<1>(tempGameState);
+                    tempMove = get<1>(tempGameState);
                     tempMove = get<1>(checkGameState).append("L");
                     get<1>(checkGameState)= tempMove;
                 }
                 else if(dir == 3)
                 {
-                    string tempMove = get<1>(tempGameState);
+                    tempMove = get<1>(tempGameState);
                     tempMove = get<1>(checkGameState).append("R");
                     get<1>(checkGameState) = tempMove;
                 }
@@ -570,62 +381,56 @@ vector<vector<int>> solveGrBeFGS(vector<vector<int>> b, vector<int> t, int g)
                 rotation = (get<1>(checkGameState).length() + 1) % t.size();
                 get<0>(checkGameState) = spawnTile(get<0>(checkGameState), t);
 
-                //Calculating weight of a game state to be sorted in heap
-                int weight = 0;
-                for(int r = 0; r < rows; r++)
-                {
-                    for(int c = 0; c < columns; c++)
-                        weight = weight + get<0>(checkGameState)[r][c];
-                }
-                weight = weight / (columns * rows);
-                get<2>(checkGameState) = weight;
-
                 //Finding if a state has already been visited in the hash table
                 unordered_map<string, vector<vector<int>>>::iterator itr;
                 for(itr = visitedStates.begin(); itr != visitedStates.end(); itr++)
                 {
                     if(itr->second == get<0>(checkGameState))
+                    {
                         visitedFound = true;
+                        break;
+                    }
                 }
-                
-                //If is a new state, push it onto frontier and add it to visited table
+
                 if(!visitedFound)
                 {
+                    weight = 0;
+                    nonZeroes = 0;
+
+                    //Calculating weight of a game state to be sorted in heap
+                    for(int r = 0; r < rows; r++)
+                    {
+                        for(int c = 0; c < columns; c++)
+                        {
+                            weight = weight + get<0>(checkGameState)[r][c];
+                            if(get<0>(checkGameState)[r][c] != 0)
+                                nonZeroes++;
+                        }
+                    }
+                    weight = nonZeroes / weight;
+                    get<2>(checkGameState) = weight;
+                
+                    //If is a new state, push it onto frontier and add it to visited table
                     visitedStates.insert(make_pair(get<1>(checkGameState), get<0>(checkGameState)));
                     gameFrontier.push_back(checkGameState); 
                 }
             }            
 
-            /*
-            else if(get<0>(checkGameState) == get<0>(tempGameState))
-                cout << "+++++ILLEGAL+++++" << endl;
-            cout << "=====MOVE " << get<1>(gameFrontier.back()) << "=====" << endl;
-            printBoard(get<0>(checkGameState));
-            */
-
-            //Returns an error state if no solution
             if(gameFrontier.empty())
-            {
-                cout << "+++++ERROR: NO SOLUTION+++++" << endl;
-                moves = " ";
-                return b;
-            }
+                break;
             
             //Checks for goal state
             if(isGoal(get<0>(gameFrontier.back()), g))
-            {
+            {   
                 moves = get<1>(gameFrontier.back());
                 return get<0>(gameFrontier.back());
             }
             
-            //Sorts the frontier based on weight assigned
+            //Sorts the frontier based on weight
             gameFrontier = heuristic(gameFrontier);
-
-            //cout << "MOVE LEN: " << get<1>(gameFrontier.front()).length() << endl;
-            //cout << "WEIGHT: " << get<2>(gameFrontier.front()) << endl;
         }
     }
 
-    cout << "+++++ERROR: NO SOLUTION+++++" << endl;
+    noSolution = true;
     return b;
 }

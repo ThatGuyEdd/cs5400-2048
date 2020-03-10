@@ -8,10 +8,10 @@ Dr. Morales
 
 #include "2048.h"
 
-auto start = high_resolution_clock::now();
-
 int main()
 {
+    auto start = high_resolution_clock::now();
+    
     int goal; //Goal state
     int tile; //Variable for tiles
     string spawnTiles; //String for series of spawn tiles
@@ -27,7 +27,7 @@ int main()
     stringstream ss;
     ss << spawnTiles;
     int spawnTileVal;
-    char tempStr[1];
+    char tempStr[4];
 
     while(!ss.eof())
     {
@@ -46,12 +46,10 @@ int main()
         }
         board.push_back(tempVec);
     }
-
+    
     //Temporary placeholder board state for solving the game
     vector<vector<int>> tempState;
-    //tempState = solveBFS(board, genTiles, goal);
-    //tempState = solveID_DFS(board, genTiles, goal);
-    tempState = solveGrBeFGS(board, genTiles, goal);
+    tempState = solve(board, genTiles, goal);
 
     //Keeping track of runtime
     auto stop = high_resolution_clock::now();
